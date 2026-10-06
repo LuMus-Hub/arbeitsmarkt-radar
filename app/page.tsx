@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BriefcaseBusiness, Check, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { OpportunityMap } from "@/components/opportunity-map";
@@ -22,7 +22,9 @@ function scoreColor(score: number) {
   return "#C7D8D1";
 }
 
-function ProfileControls({ profile, onChange }: { profile: Profile; onChange: (next: Profile) => void }) {
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+function ProfileControls({ profile, onChange, onSave, saveStatus }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus }) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const toggleListValue = (key: "roles" | "skills", value: string) => {
     const current = profile[key];
@@ -90,6 +92,13 @@ function ProfileControls({ profile, onChange }: { profile: Profile; onChange: (n
       <div className="switch-row">
         <div><p>Deutschlandweit mobil</p><span>Alle Regionen berücksichtigen</span></div>
         <Switch checked={profile.relocation} onCheckedChange={(relocation) => onChange({ ...profile, relocation })} aria-label="Deutschlandweit mobil" />
+      </div>
+      <div className="profile-save">
+        <Button onClick={onSave} disabled={saveStatus === "saving"}>
+          {saveStatus === "saving" ? "Wird gespeichert …" : "Profil speichern"}
+        </Button>
+        {saveStatus === "saved" && <p role="status">Profil gespeichert.</p>}
+        {saveStatus === "error" && <p role="status" data-error="true">Speichern fehlgeschlagen. Deine Änderungen bleiben lokal erhalten.</p>}
       </div>
       <Button variant="ghost" className="reset-button" onClick={() => onChange(initialProfile)}><RotateCcw /> Profil zurücksetzen</Button>
     </div>
@@ -229,7 +238,7 @@ function ResearchRanking({ regions, selectedId, onSelect, onHover }: {
   );
 }
 
-function ResearchProfileSummary({ profile, onChange }: { profile: Profile; onChange: (next: Profile) => void }) {
+function ResearchProfileSummary({ profile, onChange, onSave, saveStatus }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus }) {
   return (
     <div className="research-profile-summary">
       <div className="research-section-label">01 — DEIN PROFIL</div>
@@ -240,7 +249,7 @@ function ResearchProfileSummary({ profile, onChange }: { profile: Profile; onCha
         <SheetTrigger asChild><button type="button">Profil bearbeiten <ArrowUpRight /></button></SheetTrigger>
         <SheetContent side="left" className="research-profile-sheet">
           <SheetHeader><SheetTitle>Profil bearbeiten</SheetTitle><SheetDescription>Alle Änderungen aktualisieren Analyse und Karte sofort.</SheetDescription></SheetHeader>
-          <div className="research-profile-sheet-scroll"><ProfileControls profile={profile} onChange={onChange} /></div>
+          <div className="research-profile-sheet-scroll"><ProfileControls profile={profile} onChange={onChange} onSave={onSave} saveStatus={saveStatus} /></div>
         </SheetContent>
       </Sheet>
     </div>
@@ -249,11 +258,48 @@ function ResearchProfileSummary({ profile, onChange }: { profile: Profile; onCha
 
 export function RadarApp({ variant = "classic" }: { variant?: "classic" | "research" }) {
   const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const hasEditedProfile = useRef(false);
   const [selectedId, setSelectedId] = useState("hannover");
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const scoredRegions = useMemo(() => scoreAllRegions(regions, profile), [profile]);
   const selectedRegion = scoredRegions.find((region) => region.id === selectedId) ?? scoredRegions[0];
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/profile", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Profil konnte nicht geladen werden");
+        return response.json() as Promise<{ profile: Profile | null }>;
+      })
+      .then(({ profile: savedProfile }) => {
+        if (active && !hasEditedProfile.current && savedProfile) setProfile(savedProfile);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const updateProfile = (next: Profile) => {
+    hasEditedProfile.current = true;
+    setProfile(next);
+    setSaveStatus("idle");
+  };
+
+  const saveProfile = async () => {
+    setSaveStatus("saving");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      if (!response.ok) throw new Error("Profil konnte nicht gespeichert werden");
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("error");
+    }
+  };
 
   useEffect(() => {
     const modelContext = (document as Document & { modelContext?: { registerTool: (tool: unknown, options?: { signal?: AbortSignal }) => void | Promise<void> } }).modelContext;
@@ -299,7 +345,7 @@ export function RadarApp({ variant = "classic" }: { variant?: "classic" | "resea
             <h1>Wo werden deine<br />Fähigkeiten gebraucht?</h1>
             <p>Wir kombinieren dein Profil mit Stellenanzeigen und regionalen Arbeitsmarktdaten und zeigen dir, wo deine Chancen besonders hoch sind.</p>
           </div>
-          <ResearchProfileSummary profile={profile} onChange={setProfile} />
+          <ResearchProfileSummary profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} />
         </section>
 
         <section className="research-analysis" id="research-map">
@@ -337,13 +383,13 @@ export function RadarApp({ variant = "classic" }: { variant?: "classic" | "resea
             <SheetTrigger asChild><Button variant="outline" className="mobile-profile-button"><SlidersHorizontal /> Profil anpassen</Button></SheetTrigger>
             <SheetContent side="left" className="mobile-profile-sheet">
               <SheetHeader><SheetTitle>Profil anpassen</SheetTitle><SheetDescription>Deine Änderungen aktualisieren Karte und Ranking sofort.</SheetDescription></SheetHeader>
-              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={setProfile} /></div>
+              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} /></div>
             </SheetContent>
           </Sheet>
         </div>
       </header>
       <div className="workspace" id="main-workspace">
-        <aside className="profile-panel glass-panel desktop-profile"><ProfileControls profile={profile} onChange={setProfile} /></aside>
+        <aside className="profile-panel glass-panel desktop-profile"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} /></aside>
         <div className="center-column"><OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={setSelectedId} deferUntilVisible /><Ranking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={setSelectedId} /></div>
         <RegionDetail region={selectedRegion} />
       </div>
