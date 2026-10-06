@@ -2,14 +2,14 @@
 
 ## Produkt
 
-Der **Arbeitsmarkt Radar** ist ein responsiver Frontend-Prototyp mit ausschließlich lokalen, klar gekennzeichneten Demodaten. Ein bearbeitbares Berufsprofil aktualisiert clientseitig Opportunity Scores, Deutschlandkarte, Regionen-Ranking und Regionsdetails. Nutzerkonten, persistente Profile, Live-Jobdaten und Backend-APIs sind nicht angebunden.
+Der **Arbeitsmarkt Radar** ist ein responsiver Prototyp mit ausschließlich lokalen, klar gekennzeichneten Demodaten. Ein bearbeitbares Berufsprofil aktualisiert clientseitig Opportunity Scores, Deutschlandkarte, Regionen-Ranking und Regionsdetails. Nutzerkonten und Live-Jobdaten sind nicht angebunden. Profile können explizit über eine anonyme, cookiegebundene ID in Cloudflare D1 gespeichert und beim nächsten Besuch im selben Browser geladen werden.
 
 ## Aktuelle Oberfläche
 
 - `/`: klassische Produktoberfläche mit Profilkonfiguration, Karte, Ranking und Regionsdetail.
 - `/design-minds`: alternative Research-Darstellung derselben Profil-, Daten- und Score-Logik.
 - Die klassische Ansicht besitzt ein scrollgesteuertes Intro aus Canvas, SVG und CSS. Es wird bei `prefers-reduced-motion` übersprungen und per `localStorage` höchstens einmal in 12 Stunden gezeigt.
-- Das Startprofil entspricht „Jonas · Berufseinstieg“. Profiländerungen bleiben nur im React-State.
+- Das Startprofil entspricht „Jonas · Berufseinstieg“. Profiländerungen aktualisieren den React-State sofort; Speichern und Laden erfolgen über `/api/profile`.
 - `document.modelContext` registriert, sofern vom Host angeboten, das Tool `configure_job_profile`.
 
 ## Daten und Berechnung
@@ -26,7 +26,7 @@ Der **Arbeitsmarkt Radar** ist ein responsiver Frontend-Prototyp mit ausschließ
 
 - React 19, TypeScript 5.9, Next.js 16 API über Vinext, Vite 8 und pnpm 11.
 - Tailwind CSS 4, gemeinsame Styles in `app/globals.css`, UI-Bausteine unter `components/ui`.
-- Cloudflare-/Sites-Build; aktuell sind weder D1 noch R2 gebunden. `db/schema.ts` ist leer und `getDb()` wird von der Produktoberfläche nicht verwendet.
+- Cloudflare-/Sites-Build mit D1-Binding `DB`. `db/schema.ts` definiert die `profiles`-Tabelle; Drizzle-Migrationen liegen unter `drizzle/`. `db/index.ts` stellt `getDb()` bereit. R2 ist nicht gebunden.
 - Node.js `>=22.13.0`; TypeScript läuft im Strict-Modus.
 - Es gibt derzeit keine automatisierten Tests und keinen `test`-Script.
 
