@@ -256,7 +256,7 @@ function ResearchProfileSummary({ profile, onChange, onSave, saveStatus }: { pro
   );
 }
 
-export function RadarApp({ variant = "classic" }: { variant?: "classic" | "research" }) {
+export function RadarApp({ variant = "classic", testMode = false }: { variant?: "classic" | "research"; testMode?: boolean }) {
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const hasEditedProfile = useRef(false);
@@ -372,12 +372,12 @@ export function RadarApp({ variant = "classic" }: { variant?: "classic" | "resea
 
   return (
     <>
-      <CinematicIntro />
+      {!testMode && <CinematicIntro />}
       <main className="app-shell">
       <header className="topbar">
         <a href="#main-workspace" className="brand" aria-label="Arbeitsmarkt Radar Startseite"><span className="brand-mark"><MapPin /></span><span>Arbeitsmarkt <strong>Radar</strong></span></a>
         <div className="topbar-actions">
-          <a className="design-variant-link" href="/design-minds">Research Design</a>
+          {!testMode && <a className="design-variant-link" href="/design-minds">Research Design</a>}
           <div className="profile-summary"><span>Aktives Profil</span><strong>Jonas · Berufseinstieg</strong><i>Demo</i></div>
           <Sheet>
             <SheetTrigger asChild><Button variant="outline" className="mobile-profile-button"><SlidersHorizontal /> Profil anpassen</Button></SheetTrigger>
