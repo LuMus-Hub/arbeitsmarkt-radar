@@ -5,6 +5,7 @@ import { profiles } from "@/db/schema";
 import { regions, roleOptions, skillOptions, type Profile } from "@/lib/market-data";
 
 const COOKIE_NAME = "radar_profile_id";
+const TEST_COOKIE_NAME = "radar_test_profile_id";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 const profileSchema = z.object({
@@ -17,17 +18,22 @@ const profileSchema = z.object({
   preferredRegions: z.array(z.string().refine((value) => regions.some((region) => region.id === value))).max(regions.length),
 }).strict();
 
-function getCookie(request: Request) {
-  const cookie = request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`));
-  const value = cookie?.slice(COOKIE_NAME.length + 1);
+function getCookie(request: Request, cookieName: string) {
+  const cookie = request.headers.get("cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${cookieName}=`));
+  const value = cookie?.slice(cookieName.length + 1);
   return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
 }
 
-function jsonResponse(body: unknown, status: number, profileId: string, request: Request) {
+function getCookieName(request: Request) {
+  return new URL(request.url).searchParams.get("scope") === "test" ? TEST_COOKIE_NAME : COOKIE_NAME;
+}
+
+function jsonResponse(body: unknown, status: number, profileId: string, request: Request, replaceCookie = false) {
   const headers = new Headers({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-  if (!getCookie(request)) {
+  const cookieName = getCookieName(request);
+  if (replaceCookie || !getCookie(request, cookieName)) {
     const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-    headers.append("Set-Cookie", `${COOKIE_NAME}=${profileId}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure}`);
+    headers.append("Set-Cookie", `${cookieName}=${profileId}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure}`);
   }
   return new Response(JSON.stringify(body), { status, headers });
 }
@@ -45,7 +51,8 @@ function serializeProfile(profile: typeof profiles.$inferSelect): Profile {
 }
 
 export async function GET(request: Request) {
-  const profileId = getCookie(request) ?? crypto.randomUUID();
+  const cookieName = getCookieName(request);
+  const profileId = getCookie(request, cookieName) ?? crypto.randomUUID();
   try {
     const saved = await getDb().select().from(profiles).where(eq(profiles.id, profileId)).get();
     return jsonResponse({ profile: saved ? serializeProfile(saved) : null }, 200, profileId, request);
@@ -95,5 +102,28 @@ export async function PUT(request: Request) {
     return jsonResponse({ success: true }, 200, profileId, request);
   } catch {
     return jsonResponse({ error: "Profil konnte nicht gespeichert werden" }, 503, profileId, request);
+  }
+}
+
+
+export async function DELETE(request: Request) {
+  if (new URL(request.url).searchParams.get("scope") !== "test") {
+    return new Response(JSON.stringify({ error: "Nur Testprofile können zurückgesetzt werden" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
+
+  const profileId = getCookie(request, TEST_COOKIE_NAME);
+  try {
+    if (profileId) {
+      await getDb().delete(profiles).where(eq(profiles.id, profileId)).run();
+    }
+    return jsonResponse({ success: true }, 200, crypto.randomUUID(), request, true);
+  } catch {
+    return new Response(JSON.stringify({ error: "Testsession konnte nicht zurückgesetzt werden" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+    });
   }
 }

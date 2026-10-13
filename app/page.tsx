@@ -5,6 +5,16 @@ import { BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw,
 import { OpportunityMap } from "@/components/opportunity-map";
 import { CinematicIntro } from "@/components/cinematic-intro";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -270,11 +280,15 @@ function Ranking({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; s
   );
 }
 
-export function RadarApp({ testMode = false }: { testMode?: boolean }) {
+export function RadarApp({ testMode = false, onTestReset }: { testMode?: boolean; onTestReset?: () => void }) {
   const [profile, setProfile] = useState<Profile>(testMode ? { ...initialProfile, roles: [], skills: [] } : initialProfile);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [testSetupRequired, setTestSetupRequired] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetInProgress, setResetInProgress] = useState(false);
+  const resetInProgressRef = useRef(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const hasEditedProfile = useRef(false);
   const [manualSelection, setManualSelection] = useState<{ profile: Profile; regionId: string } | null>(null);
   const scoredRegions = useMemo(() => scoreAllRegions(regions, profile), [profile]);
@@ -285,7 +299,7 @@ export function RadarApp({ testMode = false }: { testMode?: boolean }) {
 
   useEffect(() => {
     let active = true;
-    void fetch("/api/profile", { cache: "no-store" })
+    void fetch(testMode ? "/api/profile?scope=test" : "/api/profile", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Profil konnte nicht geladen werden");
         return response.json() as Promise<{ profile: Profile | null }>;
@@ -315,11 +329,27 @@ export function RadarApp({ testMode = false }: { testMode?: boolean }) {
     setSaveStatus("idle");
   };
 
+  const resetTestSession = async () => {
+    if (!testMode || saveStatus === "saving" || resetInProgressRef.current) return;
+    resetInProgressRef.current = true;
+    setResetInProgress(true);
+    setResetError(null);
+    try {
+      const response = await fetch("/api/profile?scope=test", { method: "DELETE", cache: "no-store" });
+      if (!response.ok) throw new Error("Testsession konnte nicht zurückgesetzt werden");
+      onTestReset?.();
+    } catch {
+      setResetError("Zurücksetzen fehlgeschlagen. Bitte versuche es erneut.");
+      resetInProgressRef.current = false;
+      setResetInProgress(false);
+    }
+  };
+
   const saveProfile = async () => {
     if (testMode && (!profile.roles.length || !profile.skills.length || (!profile.relocation && !profile.preferredRegions.length))) return;
     setSaveStatus("saving");
     try {
-      const response = await fetch("/api/profile", {
+      const response = await fetch(testMode ? "/api/profile?scope=test" : "/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
@@ -370,6 +400,42 @@ export function RadarApp({ testMode = false }: { testMode?: boolean }) {
         <a href="#main-workspace" className="brand" aria-label="Arbeitsmarkt Radar Startseite"><span className="brand-mark"><MapPin /></span><span>Arbeitsmarkt <strong>Radar</strong></span></a>
         <div className="topbar-actions">
           <div className="profile-summary"><span>Aktives Profil</span><strong>{profile.roles[0] ?? "Profil vervollständigen"} · {profile.experience}</strong><i>Demo</i></div>
+          {testMode && (
+            <AlertDialog open={resetDialogOpen} onOpenChange={(open) => {
+              if (resetInProgress) return;
+              setResetDialogOpen(open);
+              if (open) setResetError(null);
+            }}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-label="Neue Testperson / Test zurücksetzen"
+                  title="Neue Testperson / Test zurücksetzen"
+                  disabled={saveStatus === "saving" || resetInProgress}
+                  className="h-10 shrink-0 rounded-full px-3 text-xs sm:px-4"
+                >
+                  <RotateCcw aria-hidden="true" />
+                  <span className="hidden min-[480px]:inline">Neue Testperson</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Test für nächste Person zurücksetzen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Das gespeicherte Testprofil dieser Person wird gelöscht. Danach startet eine neue anonyme Testsitzung.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {resetError && <p role="alert" className="text-sm text-destructive">{resetError}</p>}
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={resetInProgress}>Abbrechen</AlertDialogCancel>
+                  <Button type="button" onClick={() => void resetTestSession()} disabled={resetInProgress || saveStatus === "saving"}>
+                    {resetInProgress ? "Wird zurückgesetzt …" : "Test zurücksetzen"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Sheet open={testMode ? profileSheetOpen : undefined} onOpenChange={(open) => {
             const invalidTestProfile = !profile.roles.length || !profile.skills.length || (!profile.relocation && !profile.preferredRegions.length);
             if (!open && testMode && invalidTestProfile) return;

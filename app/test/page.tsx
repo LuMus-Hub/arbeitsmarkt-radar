@@ -8,7 +8,7 @@ import { RadarApp } from "../page";
 export default function TestPage() {
   const [testStarted, setTestStarted] = useState(false);
 
-  if (testStarted) return <RadarApp testMode />;
+  if (testStarted) return <RadarApp testMode onTestReset={() => setTestStarted(false)} />;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-12">

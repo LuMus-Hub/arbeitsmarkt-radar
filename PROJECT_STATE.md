@@ -2,12 +2,12 @@
 
 ## Produkt
 
-Der **Arbeitsmarkt Radar** ist ein responsiver Prototyp mit ausschließlich lokalen, klar gekennzeichneten Demodaten. Ein bearbeitbares Berufsprofil aktualisiert clientseitig Opportunity Scores, Deutschlandkarte, Regionen-Ranking und Regionsdetails. Nutzerkonten und Live-Jobdaten sind nicht angebunden. Profile können explizit über eine anonyme, cookiegebundene ID in Cloudflare D1 gespeichert und beim nächsten Besuch im selben Browser geladen werden.
+Der **Arbeitsmarkt Radar** ist ein responsiver Prototyp mit ausschließlich lokalen, klar gekennzeichneten Demodaten. Ein bearbeitbares Berufsprofil aktualisiert clientseitig Opportunity Scores, Deutschlandkarte, Regionen-Ranking und Regionsdetails. Nutzerkonten und Live-Jobdaten sind nicht angebunden. Profile können explizit über eine anonyme, cookiegebundene ID in Cloudflare D1 gespeichert und beim nächsten Besuch im selben Browser geladen werden. `/` und `/test` verwenden getrennte HttpOnly-Cookies und damit getrennte Profil-IDs.
 
 ## Aktuelle Oberfläche
 
 - `/`: klassische Produktoberfläche mit Profilkonfiguration, Karte, Ranking und Regionsdetail.
-- `/test`: zuerst ein Startscreen mit Kennzeichnung „Prototyp · simulierte Demodaten“; „Test starten“ öffnet dieselbe klassische `RadarApp` ohne CinematicIntro. Bei einem neuen Testprofil öffnet sich die vorhandene Profilbearbeitung automatisch und verlangt mindestens ein Tätigkeitsfeld sowie einen Skill. Gespeicherte Profile werden geladen und nicht überschrieben.
+- `/test`: zuerst ein Startscreen mit Kennzeichnung „Prototyp · simulierte Demodaten“; „Test starten“ öffnet dieselbe klassische `RadarApp` ohne CinematicIntro. Bei einem neuen Testprofil öffnet sich die vorhandene Profilbearbeitung automatisch und verlangt mindestens ein Tätigkeitsfeld sowie einen Skill. Gespeicherte Profile werden geladen und nicht überschrieben. Während des Tests kann „Neue Testperson“ das Testprofil serverseitig löschen und eine neue anonyme Testsitzung starten.
 - `/design-minds` und die alternative Research-Darstellung wurden entfernt; die klassische Produktoberfläche ist die einzige Ansicht.
 - Die klassische Ansicht besitzt ein scrollgesteuertes Intro aus Canvas, SVG und CSS. Es wird bei `prefers-reduced-motion` übersprungen und per `localStorage` höchstens einmal in 12 Stunden gezeigt.
 - Die Topbar zeigt dynamisch das erste gewählte Tätigkeitsfeld und das Erfahrungslevel; ohne Tätigkeitsfeld erscheint eine neutrale Aufforderung. Profiländerungen aktualisieren den React-State sofort; Speichern und Laden erfolgen über `/api/profile`. Die normalen Profil-Defaults bleiben unverändert.
