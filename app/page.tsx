@@ -24,7 +24,7 @@ function scoreColor(score: number) {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-function ProfileControls({ profile, onChange, onSave, saveStatus }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus }) {
+function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = false }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus; testSetup?: boolean }) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const toggleListValue = (key: "roles" | "skills", value: string) => {
     const current = profile[key];
@@ -71,6 +71,7 @@ function ProfileControls({ profile, onChange, onSave, saveStatus }: { profile: P
             </label>
           ))}
         </div>
+        {testSetup && <p className="profile-requirement" role="status">Wähle mindestens ein Tätigkeitsfeld aus. ({profile.roles.length} ausgewählt)</p>}
       </fieldset>
       <fieldset className="field-group skills-group">
         <legend>Skills</legend>
@@ -81,6 +82,7 @@ function ProfileControls({ profile, onChange, onSave, saveStatus }: { profile: P
           })}
         </div>
         <button type="button" className="more-skills" onClick={() => setShowAllSkills((value) => !value)}>{showAllSkills ? "Weniger anzeigen" : `Weitere ${skillOptions.length - 5} Skills`}</button>
+        {testSetup && <p className="profile-requirement" role="status">Wähle mindestens einen Skill aus. ({profile.skills.length} ausgewählt)</p>}
       </fieldset>
       <div className="field-group compact-field">
         <label>Arbeitsform</label>
@@ -94,13 +96,13 @@ function ProfileControls({ profile, onChange, onSave, saveStatus }: { profile: P
         <Switch checked={profile.relocation} onCheckedChange={(relocation) => onChange({ ...profile, relocation })} aria-label="Deutschlandweit mobil" />
       </div>
       <div className="profile-save">
-        <Button onClick={onSave} disabled={saveStatus === "saving"}>
-          {saveStatus === "saving" ? "Wird gespeichert …" : "Profil speichern"}
+        <Button onClick={onSave} disabled={saveStatus === "saving" || (testSetup && (!profile.roles.length || !profile.skills.length))}>
+          {saveStatus === "saving" ? "Wird gespeichert …" : testSetup ? "Übernehmen & Profil speichern" : "Profil speichern"}
         </Button>
         {saveStatus === "saved" && <p role="status">Profil gespeichert.</p>}
         {saveStatus === "error" && <p role="status" data-error="true">Speichern fehlgeschlagen. Deine Änderungen bleiben lokal erhalten.</p>}
       </div>
-      <Button variant="ghost" className="reset-button" onClick={() => onChange(initialProfile)}><RotateCcw /> Profil zurücksetzen</Button>
+      <Button variant="ghost" className="reset-button" onClick={() => onChange(testSetup ? { ...initialProfile, roles: [], skills: [] } : initialProfile)}><RotateCcw /> Profil zurücksetzen</Button>
     </div>
   );
 }
@@ -257,8 +259,10 @@ function ResearchProfileSummary({ profile, onChange, onSave, saveStatus }: { pro
 }
 
 export function RadarApp({ variant = "classic", testMode = false }: { variant?: "classic" | "research"; testMode?: boolean }) {
-  const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [profile, setProfile] = useState<Profile>(testMode ? { ...initialProfile, roles: [], skills: [] } : initialProfile);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+  const [testSetupRequired, setTestSetupRequired] = useState(false);
   const hasEditedProfile = useRef(false);
   const [selectedId, setSelectedId] = useState("hannover");
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
@@ -274,11 +278,18 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
         return response.json() as Promise<{ profile: Profile | null }>;
       })
       .then(({ profile: savedProfile }) => {
-        if (active && !hasEditedProfile.current && savedProfile) setProfile(savedProfile);
+        if (!active || hasEditedProfile.current) return;
+        if (savedProfile) {
+          setProfile(savedProfile);
+        } else if (testMode) {
+          setProfile({ ...initialProfile, roles: [], skills: [] });
+          setTestSetupRequired(true);
+          setProfileSheetOpen(true);
+        }
       })
       .catch(() => undefined);
     return () => { active = false; };
-  }, []);
+  }, [testMode]);
 
   const updateProfile = (next: Profile) => {
     hasEditedProfile.current = true;
@@ -296,6 +307,10 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
       });
       if (!response.ok) throw new Error("Profil konnte nicht gespeichert werden");
       setSaveStatus("saved");
+      if (testSetupRequired && profile.roles.length >= 1 && profile.skills.length >= 1) {
+        setTestSetupRequired(false);
+        setProfileSheetOpen(false);
+      }
     } catch {
       setSaveStatus("error");
     }
@@ -378,12 +393,15 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
         <a href="#main-workspace" className="brand" aria-label="Arbeitsmarkt Radar Startseite"><span className="brand-mark"><MapPin /></span><span>Arbeitsmarkt <strong>Radar</strong></span></a>
         <div className="topbar-actions">
           {!testMode && <a className="design-variant-link" href="/design-minds">Research Design</a>}
-          <div className="profile-summary"><span>Aktives Profil</span><strong>Jonas · Berufseinstieg</strong><i>Demo</i></div>
-          <Sheet>
+          <div className="profile-summary"><span>Aktives Profil</span><strong>{profile.roles[0] ?? "Profil vervollständigen"} · {profile.experience}</strong><i>Demo</i></div>
+          <Sheet open={testMode ? profileSheetOpen : undefined} onOpenChange={(open) => {
+            if (!open && testSetupRequired) return;
+            setProfileSheetOpen(open);
+          }}>
             <SheetTrigger asChild><Button variant="outline" className="mobile-profile-button"><SlidersHorizontal /> Profil anpassen</Button></SheetTrigger>
             <SheetContent side="left" className="mobile-profile-sheet">
               <SheetHeader><SheetTitle>Profil anpassen</SheetTitle><SheetDescription>Deine Änderungen aktualisieren Karte und Ranking sofort.</SheetDescription></SheetHeader>
-              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} /></div>
+              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} testSetup={testSetupRequired} /></div>
             </SheetContent>
           </Sheet>
         </div>

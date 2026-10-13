@@ -59,3 +59,5 @@ html[data-intro-state="skip"] .cinematic-intro{display:none}
 @media(prefers-reduced-motion:reduce){.cinematic-intro{display:none}}
 
 .profile-save p[role="status"]{color:#31755d}.profile-save p[data-error="true"]{color:#a44636}
+
+.profile-requirement{margin:8px 0 0;color:#8b5032;font-size:12px;line-height:1.4}
