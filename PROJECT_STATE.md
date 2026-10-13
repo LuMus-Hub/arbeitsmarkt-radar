@@ -7,7 +7,7 @@ Der **Arbeitsmarkt Radar** ist ein responsiver Prototyp mit ausschließlich loka
 ## Aktuelle Oberfläche
 
 - `/`: klassische Produktoberfläche mit Profilkonfiguration, Karte, Ranking und Regionsdetail.
-- `/test`: klassische Produktoberfläche ohne CinematicIntro und Research-Design-Link, auf Basis derselben `RadarApp`.
+- `/test`: zuerst ein Startscreen mit Kennzeichnung „Prototyp · simulierte Demodaten“; „Test starten“ öffnet dieselbe klassische `RadarApp` ohne CinematicIntro und Research-Design-Link.
 - `/design-minds`: alternative Research-Darstellung derselben Profil-, Daten- und Score-Logik.
 - Die klassische Ansicht besitzt ein scrollgesteuertes Intro aus Canvas, SVG und CSS. Es wird bei `prefers-reduced-motion` übersprungen und per `localStorage` höchstens einmal in 12 Stunden gezeigt.
 - Das Startprofil entspricht „Jonas · Berufseinstieg“. Profiländerungen aktualisieren den React-State sofort; Speichern und Laden erfolgen über `/api/profile`.
