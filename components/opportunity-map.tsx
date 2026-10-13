@@ -405,7 +405,7 @@ export function OpportunityMap({ regions, selectedId, onSelect, deferUntilVisibl
             id: "regions-circles", type: "circle", source: "regions",
             paint: {
               "circle-radius": ["interpolate", ["linear"], ["get", "jobs"], 80, 17, 400, 26],
-              "circle-color": ["interpolate", ["linear"], ["get", "score"], 70, "#7cae9b", 82, "#24785f", 88, "#075441],
+              "circle-color": ["interpolate", ["linear"], ["get", "score"], 70, "#7cae9b", 82, "#24785f", 88, "#075441"],
               "circle-stroke-color": "rgba(255,255,255,.96)",
               "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 4, 3],
               "circle-opacity": 0.98,
