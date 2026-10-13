@@ -97,3 +97,10 @@ html[data-intro-state="skip"] .cinematic-intro{display:none}
 .top-three-score small{font-size:10px;font-weight:500}
 @media(max-width:560px){.top-three-grid{grid-template-columns:1fr}.top-three-card{grid-template-columns:24px minmax(0,1fr) auto;padding:9px 12px}.top-three-position{grid-column:auto}.top-three-position small{display:none}.top-three-card>strong{font-size:12px}.top-three-score{font-size:16px}}
 @media(min-width:561px) and (max-width:1299px){.top-three-card{padding:9px;gap:5px}.top-three-card>strong{font-size:12px}.top-three-score{font-size:16px}}
+
+.score-reasons{margin-top:14px;padding:13px 14px;border:1px solid rgba(42,77,63,.09);border-radius:14px;background:rgba(246,249,247,.78)}
+.score-reasons h4{margin:0 0 8px;color:#34473e;font-size:12px;font-weight:700}
+.score-reasons ul{display:grid;gap:6px;margin:0;padding-left:17px;color:#5f6d66;font-size:11px;line-height:1.45}
+.score-adjustment{margin:10px 0 0;color:#748078;font-size:10px;line-height:1.5}
+.score-adjustment strong{color:#34473e;font-weight:700}
+@media(max-width:560px){.score-reasons{padding:11px 12px}.score-adjustment{font-size:10px}}

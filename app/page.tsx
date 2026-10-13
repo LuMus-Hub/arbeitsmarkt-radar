@@ -22,6 +22,36 @@ function scoreColor(score: number) {
   return "#C7D8D1";
 }
 
+const averageDemoTrend = regions.reduce((sum, region) => sum + region.trend, 0) / regions.length;
+
+function getRegionReasons(region: ScoredRegion, profile: Profile) {
+  const selectedDemand = [
+    ...profile.skills.map((label) => ({ label, value: region.skillDemand[label] })),
+    ...profile.roles.map((label) => ({ label, value: region.roleDemand[label] })),
+  ].filter((item): item is { label: string; value: number } => item.value !== undefined);
+  const strongestDemand = selectedDemand.sort((a, b) => b.value - a.value)[0];
+  const demandReason = strongestDemand
+    ? `${strongestDemand.value >= 85 ? "Hohe Nachfrage nach" : "Nachfragewert für"} ${strongestDemand.label}: ${strongestDemand.value}/100.`
+    : "Wähle Skills oder Tätigkeitsfelder, um die Nachfrage gezielt einzuordnen.";
+
+  const trendReason = region.trend > averageDemoTrend
+    ? `Arbeitsmarktdynamik über dem Demo-Mittelwert (${region.trend}/100).`
+    : `Arbeitsmarktdynamik: ${region.trend}/100 (Demo-Mittelwert: ${Math.round(averageDemoTrend)}/100).`;
+
+  let profileReason = "Profilangaben noch unvollständig; eine starke Profilpassung lässt sich noch nicht ableiten.";
+  if (profile.skills.length && profile.roles.length) {
+    profileReason = region.skillMatch >= 85 && region.roleMatch >= 85
+      ? `Starke Profilpassung: Skills ${region.skillMatch}/100, Tätigkeitsfeld ${region.roleMatch}/100.`
+      : `Profilpassung: Skills ${region.skillMatch}/100, Tätigkeitsfeld ${region.roleMatch}/100.`;
+  } else if (profile.skills.length) {
+    profileReason = `Skill-Passung: ${region.skillMatch}/100.`;
+  } else if (profile.roles.length) {
+    profileReason = `Passung zum Tätigkeitsfeld: ${region.roleMatch}/100.`;
+  }
+
+  return [demandReason, trendReason, profileReason];
+}
+
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = false }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus; testSetup?: boolean }) {
@@ -164,8 +194,12 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
   );
 }
 
-function RegionDetail({ region, isManual }: { region: ScoredRegion; isManual: boolean }) {
+function RegionDetail({ region, profile, isManual }: { region: ScoredRegion; profile: Profile; isManual: boolean }) {
   const scoreParts = [["Passende Stellen", region.components.jobs, 40], ["Nachfrage", region.components.demand, 20], ["Dynamik", region.components.trend, 15], ["Gehalt", region.components.salary, 15], ["Arbeitsmarkt", region.components.laborMarket, 10]] as const;
+  const reasons = getRegionReasons(region, profile);
+  const isPreferred = profile.preferredRegions.includes(region.id);
+  const preferenceAdjustment = profile.relocation ? (isPreferred ? 3 : 0) : (isPreferred ? 3 : -9);
+  const preferenceLabel = preferenceAdjustment > 0 ? `+${preferenceAdjustment}` : String(preferenceAdjustment);
   return (
     <aside className="detail-panel glass-panel" aria-live="polite">
       <div className="detail-content" key={region.id}>
@@ -182,8 +216,13 @@ function RegionDetail({ region, isManual }: { region: ScoredRegion; isManual: bo
         </div>
         <div className="top-skills-detail">{region.topSkills.map((skill) => <span key={skill}>{skill}</span>)}</div>
         <section className="breakdown">
-          <div className="section-title"><h3>So entsteht der Score</h3><span>Gewichtung</span></div>
-          {scoreParts.map(([label, value, weight]) => <div className="bar-row" key={label}><div><span>{label}</span><strong>{weight} %</strong></div><div className="bar-track"><i style={{ width: `${value}%` }} /></div></div>)}
+          <div className="section-title"><h3>So entsteht der Score</h3><span>Wert · Gewichtung</span></div>
+          {scoreParts.map(([label, value, weight]) => <div className="bar-row" key={label}><div><span>{label}</span><strong>{value}/100 · {weight} %</strong></div><div className="bar-track" aria-hidden="true"><i style={{ width: `${value}%` }} /></div></div>)}
+          <div className="score-reasons" aria-label={`Warum ${region.name} zu deinem Profil passt`}>
+            <h4>Warum diese Region?</h4>
+            <ul>{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          </div>
+          <p className="score-adjustment">Regionale Präferenz: <strong>{preferenceLabel} Punkte</strong> ({isPreferred ? "bevorzugte Region" : profile.relocation ? "deutschlandweit offen" : "nicht bevorzugt"}). Die Komponenten werden gewichtet kombiniert, danach wird die Präferenz berücksichtigt und der Score auf 0–100 begrenzt.</p>
         </section>
         <section className="jobs-section">
           <div className="section-title"><h3>Beste Matches</h3><button type="button">Alle <ArrowUpRight /></button></div>
@@ -346,7 +385,7 @@ export function RadarApp({ testMode = false }: { testMode?: boolean }) {
       <div className="workspace" id="main-workspace">
         <aside className="profile-panel glass-panel desktop-profile"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} /></aside>
         <div className="center-column"><OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectRegion} deferUntilVisible /><Ranking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectRegion} /></div>
-        <RegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} />
+        <RegionDetail region={selectedRegion} profile={profile} isManual={Boolean(isManualSelection)} />
       </div>
       <footer className="app-footer"><span>Arbeitsmarkt Radar · Konzeptprototyp</span><span>Stellen- und Scorewerte sind simulierte Demodaten.</span></footer>
       </main>
