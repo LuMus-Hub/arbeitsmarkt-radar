@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArrowUpRight, BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
+import { BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { OpportunityMap } from "@/components/opportunity-map";
 import { CinematicIntro } from "@/components/cinematic-intro";
 import { Button } from "@/components/ui/button";
@@ -195,7 +195,7 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
 }
 
 function RegionDetail({ region, profile, isManual }: { region: ScoredRegion; profile: Profile; isManual: boolean }) {
-  const scoreParts = [["Passende Stellen", region.components.jobs, 40], ["Nachfrage", region.components.demand, 20], ["Dynamik", region.components.trend, 15], ["Gehalt", region.components.salary, 15], ["Arbeitsmarkt", region.components.laborMarket, 10]] as const;
+  const scoreParts = [["Demo-Stellenpassung", region.components.jobs, 40], ["Nachfrage", region.components.demand, 20], ["Dynamik", region.components.trend, 15], ["Gehalt", region.components.salary, 15], ["Arbeitsmarkt", region.components.laborMarket, 10]] as const;
   const reasons = getRegionReasons(region, profile);
   const isPreferred = profile.preferredRegions.includes(region.id);
   const preferenceAdjustment = profile.relocation ? (isPreferred ? 3 : 0) : (isPreferred ? 3 : -9);
@@ -209,9 +209,9 @@ function RegionDetail({ region, profile, isManual }: { region: ScoredRegion; pro
           <div><p className="eyebrow">Opportunity Score</p><h2>{region.name}</h2></div>
           <div className="score-ring" style={{ "--score-color": scoreColor(region.score), "--score": `${region.score}%` } as React.CSSProperties}><strong>{region.score}</strong><span>/100</span></div>
         </div>
-        <p className="explanation">Dein Profil passt hier zu rund <strong>{region.matchedJobs} Stellen</strong>. Besonders gefragt sind {region.topSkills.slice(0, 2).join(" und ")}.</p>
+        <p className="explanation">Dein Profil passt hier laut Demo zu rund <strong>{region.matchedJobs} simulierten Stellen</strong>. Besonders gefragt sind {region.topSkills.slice(0, 2).join(" und ")}.</p>
         <div className="metric-row">
-          <div><BriefcaseBusiness /><strong>{region.matchedJobs}</strong><span>passende Stellen</span></div>
+          <div><BriefcaseBusiness /><strong>{region.matchedJobs}</strong><span>passende Stellen (Demo)</span></div>
           <div><TrendingUp /><strong>+{Math.round(region.trend / 5)} %</strong><span>Nachfragetrend</span></div>
         </div>
         <div className="top-skills-detail">{region.topSkills.map((skill) => <span key={skill}>{skill}</span>)}</div>
@@ -225,9 +225,10 @@ function RegionDetail({ region, profile, isManual }: { region: ScoredRegion; pro
           <p className="score-adjustment">Regionale Präferenz: <strong>{preferenceLabel} Punkte</strong> ({isPreferred ? "bevorzugte Region" : profile.relocation ? "deutschlandweit offen" : "nicht bevorzugt"}). Die Komponenten werden gewichtet kombiniert, danach wird die Präferenz berücksichtigt und der Score auf 0–100 begrenzt.</p>
         </section>
         <section className="jobs-section">
-          <div className="section-title"><h3>Beste Matches</h3><button type="button">Alle <ArrowUpRight /></button></div>
+          <div className="section-title"><h3>Beispielstellen (Demo)</h3></div>
+          <p className="demo-jobs-note">Simulierte Beispiele und Kennzahlen, keine geprüften aktuellen Stellenangebote.</p>
           <div className="job-list">
-            {region.jobs.map((job) => <article key={`${job.company}-${job.title}`}><div className="company-mark">{job.company.charAt(0)}</div><div><h4>{job.title}</h4><p>{job.company} · {job.mode}</p></div><span>{Math.min(99, job.match + Math.round((region.skillMatch - 80) / 3))} %</span></article>)}
+            {region.jobs.map((job) => <article key={`${job.company}-${job.title}`}><div className="company-mark">{job.company.charAt(0)}</div><div><h4>{job.title}</h4><p>{job.company} · {job.mode}</p></div><span>Demo-Match {Math.min(99, job.match + Math.round((region.skillMatch - 80) / 3))} %</span></article>)}
           </div>
         </section>
       </div>
@@ -259,11 +260,11 @@ function Ranking({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; s
     <section className="ranking-panel glass-panel" aria-labelledby="ranking-title">
       <div className="ranking-header">
         <div><p className="eyebrow">Dein Ranking</p><h2 id="ranking-title">Die stärksten Regionen für dein Profil</h2></div>
-        <div className="sort-tabs" aria-label="Ranking sortieren">{([['score', 'Score'], ['jobs', 'Stellen'], ['trend', 'Dynamik']] as [SortKey, string][]).map(([key, label]) => <button type="button" key={key} aria-pressed={sort === key} onClick={() => setSort(key)}>{label}</button>)}</div>
+        <div className="sort-tabs" aria-label="Ranking sortieren">{([['score', 'Score'], ['jobs', 'Demo-Stellen'], ['trend', 'Dynamik']] as [SortKey, string][]).map(([key, label]) => <button type="button" key={key} aria-pressed={sort === key} onClick={() => setSort(key)}>{label}</button>)}</div>
       </div>
       <TopThreeRegions regions={regions} selectedId={selectedId} onSelect={onSelect} />
       <div className="ranking-list">
-        {sorted.map((region, index) => <button className="ranking-row" data-selected={region.id === selectedId} aria-pressed={region.id === selectedId} type="button" key={region.id} onClick={() => onSelect(region.id)}><span className="rank">{String(index + 1).padStart(2, "0")}</span><span className="region-name"><strong>{region.name}</strong><small>{region.state}</small></span><span className="ranking-stat"><strong>{region.matchedJobs}</strong><small>Stellen</small></span><span className="ranking-stat positive"><strong>+{Math.round(region.trend / 5)} %</strong><small>Dynamik</small></span><span className="ranking-skills">{region.topSkills.slice(0, 2).map((skill) => <i key={skill}>{skill}</i>)}</span><span className="row-score" style={{ color: scoreColor(region.score) }}>{region.score}</span><ChevronRight className="row-arrow" /></button>)}
+        {sorted.map((region, index) => <button className="ranking-row" data-selected={region.id === selectedId} aria-pressed={region.id === selectedId} type="button" key={region.id} onClick={() => onSelect(region.id)}><span className="rank">{String(index + 1).padStart(2, "0")}</span><span className="region-name"><strong>{region.name}</strong><small>{region.state}</small></span><span className="ranking-stat"><strong>{region.matchedJobs}</strong><small>Demo-Stellen</small></span><span className="ranking-stat positive"><strong>+{Math.round(region.trend / 5)} %</strong><small>Dynamik</small></span><span className="ranking-skills">{region.topSkills.slice(0, 2).map((skill) => <i key={skill}>{skill}</i>)}</span><span className="row-score" style={{ color: scoreColor(region.score) }}>{region.score}</span><ChevronRight className="row-arrow" /></button>)}
       </div>
     </section>
   );

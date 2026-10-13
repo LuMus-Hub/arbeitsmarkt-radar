@@ -273,7 +273,7 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover }: {
                 transform={`translate(${x} ${y})`}
                 role="button"
                 tabIndex={0}
-                aria-label={`${region.name}: ${region.score} Punkte, ${region.matchedJobs} passende Stellen`}
+                aria-label={`${region.name}: Demo-Score ${region.score} Punkte, ${region.matchedJobs} simulierte Stellen`}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={() => onSelect(region.id)}
                 onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(region.id); }}
@@ -567,7 +567,7 @@ export function OpportunityMap({ regions, selectedId, onSelect, deferUntilVisibl
           <div className="geo-tooltip" role="status" style={{ left: hoverCard.x + 16, top: Math.max(16, hoverCard.y - 42) }}>
             <span>{hoverCard.kind === "state" ? "Bundesland" : "Arbeitsmarktregion"}</span>
             <strong>{hoverCard.title}</strong>
-            {hoverCard.kind === "state" ? <small>{hoverCard.regionCount ? `Ø ${hoverCard.score} Punkte · ${hoverCard.regionCount} Region${hoverCard.regionCount === 1 ? "" : "en"}` : "Noch keine Demoregion"}</small> : <small>{hoverCard.score} Punkte · {hoverCard.jobs} Stellen · +{hoverCard.trend} %</small>}
+            {hoverCard.kind === "state" ? <small>{hoverCard.regionCount ? `Demo · Ø ${hoverCard.score} Punkte · ${hoverCard.regionCount} Region${hoverCard.regionCount === 1 ? "" : "en"}` : "Noch keine Demoregion"}</small> : <small>Demo · {hoverCard.score} Punkte · {hoverCard.jobs} simulierte Stellen · +{hoverCard.trend} % Dynamik</small>}
           </div>
         )}
         <div className="map-legend"><span>Niedriger</span><i /><i /><i /><i /><span>Höher</span></div>
