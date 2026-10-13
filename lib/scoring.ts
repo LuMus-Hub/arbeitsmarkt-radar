@@ -3,6 +3,7 @@ import type { Profile, Region } from "./market-data";
 export type ScoredRegion = Region & {
   score: number;
   skillMatch: number;
+  roleMatch: number;
   matchedJobs: number;
   components: {
     jobs: number;
@@ -23,18 +24,25 @@ export function calculateRegionScore(region: Region, profile: Profile): ScoredRe
       selectedSkills.length,
   );
 
-  const roleSignal = profile.roles.length
-    ? profile.roles.reduce((sum, role) => sum + (region.skillDemand[role] ?? 72), 0) /
-      profile.roles.length
-    : 70;
+  const roleMatch = Math.round(
+    profile.roles.length
+      ? profile.roles.reduce((sum, role) => sum + (region.roleDemand[role] ?? 70), 0) /
+          profile.roles.length
+      : 70,
+  );
   const modeFit = profile.workMode === "Hybrid" ? 100 : profile.workMode === "Remote" ? 82 : 88;
-  const preferenceBoost = profile.preferredRegions.includes(region.id) ? 8 : 0;
-  const relocationFactor = profile.relocation ? 1 : profile.preferredRegions.includes(region.id) ? 1 : 0.55;
+  const preferred = profile.preferredRegions.includes(region.id);
+  const mobilityFactor = profile.relocation || preferred ? 1 : 0.56;
   const matchedJobs = Math.round(
-    region.baseJobs * (0.28 + skillMatch / 145) * (0.9 + roleSignal / 1000) * relocationFactor,
+    region.baseJobs *
+      (0.28 + skillMatch / 145) *
+      (0.72 + roleMatch / 300) *
+      mobilityFactor,
   );
   const jobVolume = clamp((matchedJobs / 330) * 100);
-  const jobQuality = clamp(skillMatch * 0.55 + roleSignal * 0.25 + jobVolume * 0.15 + modeFit * 0.05);
+  const jobQuality = clamp(
+    skillMatch * 0.45 + roleMatch * 0.4 + jobVolume * 0.1 + modeFit * 0.05,
+  );
 
   const components = {
     jobs: Math.round(jobQuality),
@@ -44,6 +52,9 @@ export function calculateRegionScore(region: Region, profile: Profile): ScoredRe
     laborMarket: region.laborMarket,
   };
 
+  const preferenceAdjustment = profile.relocation
+    ? preferred ? 3 : 0
+    : preferred ? 3 : -9;
   const score = clamp(
     Math.round(
       components.jobs * 0.4 +
@@ -51,11 +62,11 @@ export function calculateRegionScore(region: Region, profile: Profile): ScoredRe
         components.trend * 0.15 +
         components.salary * 0.15 +
         components.laborMarket * 0.1 +
-        preferenceBoost,
+        preferenceAdjustment,
     ),
   );
 
-  return { ...region, score, skillMatch, matchedJobs, components };
+  return { ...region, score, skillMatch, roleMatch, matchedJobs, components };
 }
 
 export function scoreAllRegions(regions: Region[], profile: Profile): ScoredRegion[] {

@@ -32,6 +32,7 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
     onChange({ ...profile, [key]: next });
   };
   const visibleSkills = showAllSkills ? skillOptions : skillOptions.slice(0, 5);
+  const testProfileValid = profile.roles.length > 0 && profile.skills.length > 0 && (profile.relocation || profile.preferredRegions.length > 0);
 
   return (
     <div className="profile-controls">
@@ -95,14 +96,35 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
         <div><p>Deutschlandweit mobil</p><span>Alle Regionen berücksichtigen</span></div>
         <Switch checked={profile.relocation} onCheckedChange={(relocation) => onChange({ ...profile, relocation })} aria-label="Deutschlandweit mobil" />
       </div>
+      <fieldset className="field-group">
+        <legend>Bevorzugte Regionen</legend>
+        <div className="check-list">
+          {regions.map((region) => (
+            <label className="check-row" key={region.id}>
+              <Checkbox
+                checked={profile.preferredRegions.includes(region.id)}
+                onCheckedChange={() => {
+                  const preferredRegions = profile.preferredRegions.includes(region.id)
+                    ? profile.preferredRegions.filter((id) => id !== region.id)
+                    : [...profile.preferredRegions, region.id];
+                  onChange({ ...profile, preferredRegions });
+                }}
+              />
+              <span>{region.name}</span>
+            </label>
+          ))}
+        </div>
+        <p className="profile-requirement">Bei deutschlandweiter Mobilität erhalten bevorzugte Regionen einen kleinen Bonus. Ohne Mobilität werden andere Regionen schwächer bewertet.</p>
+        {testSetup && !profile.relocation && profile.preferredRegions.length === 0 && <p className="profile-requirement" role="status">Wähle mindestens eine bevorzugte Region aus. (0 ausgewählt)</p>}
+      </fieldset>
       <div className="profile-save">
-        <Button onClick={onSave} disabled={saveStatus === "saving" || (testSetup && (!profile.roles.length || !profile.skills.length))}>
+        <Button onClick={onSave} disabled={saveStatus === "saving" || (testSetup && !testProfileValid)}>
           {saveStatus === "saving" ? "Wird gespeichert …" : testSetup ? "Übernehmen & Profil speichern" : "Profil speichern"}
         </Button>
         {saveStatus === "saved" && <p role="status">Profil gespeichert.</p>}
         {saveStatus === "error" && <p role="status" data-error="true">Speichern fehlgeschlagen. Deine Änderungen bleiben lokal erhalten.</p>}
       </div>
-      <Button variant="ghost" className="reset-button" onClick={() => onChange(testSetup ? { ...initialProfile, roles: [], skills: [] } : initialProfile)}><RotateCcw /> Profil zurücksetzen</Button>
+      <Button variant="ghost" className="reset-button" onClick={() => onChange(testSetup ? { ...initialProfile, roles: [], skills: [], preferredRegions: [] } : initialProfile)}><RotateCcw /> Profil zurücksetzen</Button>
     </div>
   );
 }
@@ -281,6 +303,11 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
         if (!active || hasEditedProfile.current) return;
         if (savedProfile) {
           setProfile(savedProfile);
+          if (testMode) {
+            const needsSetup = !savedProfile.roles.length || !savedProfile.skills.length || (!savedProfile.relocation && !savedProfile.preferredRegions.length);
+            setTestSetupRequired(needsSetup);
+            setProfileSheetOpen(needsSetup);
+          }
         } else if (testMode) {
           setProfile({ ...initialProfile, roles: [], skills: [] });
           setTestSetupRequired(true);
@@ -307,7 +334,7 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
       });
       if (!response.ok) throw new Error("Profil konnte nicht gespeichert werden");
       setSaveStatus("saved");
-      if (testSetupRequired && profile.roles.length >= 1 && profile.skills.length >= 1) {
+      if (testSetupRequired && profile.roles.length >= 1 && profile.skills.length >= 1 && (profile.relocation || profile.preferredRegions.length >= 1)) {
         setTestSetupRequired(false);
         setProfileSheetOpen(false);
       }

@@ -15,8 +15,8 @@ Der **Arbeitsmarkt Radar** ist ein responsiver Prototyp mit ausschließlich loka
 
 ## Daten und Berechnung
 
-- `lib/market-data.ts`: Profiltypen, Auswahloptionen und 12 Demoregionen mit WGS84-Koordinaten, Kennzahlen, Skills, Arbeitgebern und Beispielstellen.
-- `lib/scoring.ts`: deterministische, clientseitige Berechnung. Gewichtung: Stellenqualität/-menge 40 %, Nachfrage 20 %, Trend 15 %, Gehalt 15 %, Arbeitsmarktlage 10 %; bevorzugte Regionen können zusätzlich 8 Punkte beitragen. Das Ergebnis wird auf 0–100 begrenzt.
+- `lib/market-data.ts`: Profiltypen, Auswahloptionen und 12 Demoregionen mit WGS84-Koordinaten, Marktkennzahlen, Skill-Nachfrage, rollenspezifischer Nachfrage für fünf Tätigkeitsfelder, Arbeitgebern und Beispielstellen.
+- `lib/scoring.ts`: deterministische, clientseitige Berechnung. Gewichtung: passende Stellen 40 %, Nachfrage 20 %, Trend 15 %, Gehalt 15 %, Arbeitsmarktlage 10 %. Skills und Tätigkeitsfelder bestimmen die Stellenpassung und -zahl; regionale Präferenzen geben bei deutschlandweiter Mobilität 3 Zusatzpunkte, ohne Mobilität erhalten bevorzugte Regionen 3 Punkte und andere Regionen einen Abschlag von 9 Punkten sowie eine reduzierte Stellenzahl. Scores werden auf 0–100 begrenzt.
 - `public/germany-states.geojson`: lokale WGS84-Geometrien aller 16 Bundesländer.
 
 ## Karte
