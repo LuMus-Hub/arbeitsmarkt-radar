@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { ArrowUpRight, BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { OpportunityMap } from "@/components/opportunity-map";
 import { CinematicIntro } from "@/components/cinematic-intro";
@@ -197,9 +196,9 @@ function RegionDetail({ region, isManual }: { region: ScoredRegion; isManual: bo
   );
 }
 
-function TopThreeRegions({ regions, selectedId, onSelect, research = false }: { regions: ScoredRegion[]; selectedId: string; onSelect: (id: string) => void; research?: boolean }) {
+function TopThreeRegions({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; selectedId: string; onSelect: (id: string) => void }) {
   return (
-    <div className={research ? "top-three-regions top-three-regions--research" : "top-three-regions"} aria-label="Top 3 nach Opportunity Score">
+    <div className="top-three-regions" aria-label="Top 3 nach Opportunity Score">
       <div className="top-three-heading"><strong>Top 3 · Opportunity Score</strong><span>Unabhängig von der Listensortierung</span></div>
       <div className="top-three-grid">
         {regions.slice(0, 3).map((region, index) => (
@@ -231,115 +230,13 @@ function Ranking({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; s
   );
 }
 
-function ResearchRegionDetail({ region, isManual, compact = false }: { region: ScoredRegion; isManual: boolean; compact?: boolean }) {
-  const scoreParts = [["Passende Stellen", region.components.jobs], ["Nachfrage", region.components.demand], ["Dynamik", region.components.trend], ["Gehalt", region.components.salary], ["Arbeitsmarkt", region.components.laborMarket]] as const;
-  return (
-    <aside className={`research-detail${compact ? " research-detail--compact" : ""}`} aria-live="polite">
-      <div className="research-section-label">{isManual ? "02 — MANUELL AUSGEWÄHLT" : "02 — TOP-EMPFEHLUNG"}</div>
-      <div className="research-region-heading">
-        <div><span>{region.state}</span><h2>{region.name}</h2></div>
-        <div className="research-score"><strong>{region.score}</strong><span>Opportunity Score</span></div>
-      </div>
-      <p className="research-interpretation">Dein Profil trifft hier auf eine besonders hohe Nachfrage nach {region.topSkills.slice(0, 2).join(" und ")}.</p>
-
-      <div className="research-metrics">
-        <div><strong>{region.matchedJobs}</strong><span>passende Stellen</span></div>
-        <div><strong>+{Math.round(region.trend / 5)} %</strong><span>Nachfrage</span></div>
-        <div><strong>{region.skillMatch} %</strong><span>Profil-Match</span></div>
-      </div>
-
-      <section className="research-breakdown">
-        <div className="research-section-label">03 — WARUM {region.score}?</div>
-        {scoreParts.map(([label, value]) => (
-          <div className="research-bar" key={label}>
-            <div><span>{label}</span><strong>{value}</strong></div>
-            <div><i style={{ width: `${value}%` }} /></div>
-          </div>
-        ))}
-        <p>Der Opportunity Score kombiniert Profilpassung, regionale Nachfrage, Entwicklung, Gehaltsniveau und Arbeitsmarktlage.</p>
-      </section>
-
-      <section className="research-skills">
-        <div className="research-section-label">04 — RELEVANTE SKILLS</div>
-        <p>{region.topSkills.join(" · ")}</p>
-      </section>
-
-      <section className="research-jobs">
-        <div className="research-section-label">05 — STELLEN</div>
-        {region.jobs.map((job) => (
-          <article key={`${job.company}-${job.title}`}>
-            <div><h3>{job.title}</h3><p>{job.company} · {region.name} · {job.mode}</p></div>
-            <strong>{Math.min(99, job.match + Math.round((region.skillMatch - 80) / 3))} %<span>Match</span></strong>
-          </article>
-        ))}
-      </section>
-    </aside>
-  );
-}
-
-function ResearchRanking({ regions, selectedId, onSelect }: {
-  regions: ScoredRegion[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-}) {
-  const [sort, setSort] = useState<SortKey>("score");
-  const sorted = useMemo(() => [...regions].sort((a, b) => sort === "jobs" ? b.matchedJobs - a.matchedJobs : sort === "trend" ? b.trend - a.trend : b.score - a.score), [regions, sort]);
-  return (
-    <section className="research-ranking" aria-labelledby="research-ranking-title">
-      <div className="research-ranking-head">
-        <div><div className="research-section-label">06 — REGIONEN</div><h2 id="research-ranking-title">Deine stärksten Arbeitsmärkte</h2></div>
-        <div className="research-sort" aria-label="Ranking sortieren">
-          {([['score', 'Score'], ['jobs', 'Stellen'], ['trend', 'Dynamik']] as [SortKey, string][]).map(([key, label]) => <button type="button" key={key} aria-pressed={sort === key} onClick={() => setSort(key)}>{label}</button>)}
-        </div>
-      </div>
-      <TopThreeRegions regions={regions} selectedId={selectedId} onSelect={onSelect} research />
-      <div className="research-ranking-list">
-        {sorted.map((region, index) => (
-          <button
-            type="button"
-            key={region.id}
-            data-selected={region.id === selectedId}
-            aria-pressed={region.id === selectedId}
-            onClick={() => onSelect(region.id)}
-          >
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <strong>{region.name}</strong>
-            <small>{region.state}</small>
-            <i>{region.matchedJobs} Stellen</i>
-            <b>{region.score}</b>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ResearchProfileSummary({ profile, onChange, onSave, saveStatus }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus }) {
-  return (
-    <div className="research-profile-summary">
-      <div className="research-section-label">01 — DEIN PROFIL</div>
-      <strong>{profile.education}</strong>
-      <span>{profile.experience} · {profile.workMode}</span>
-      <p>{profile.roles.slice(0, 3).join(" · ")}</p>
-      <Sheet>
-        <SheetTrigger asChild><button type="button">Profil bearbeiten <ArrowUpRight /></button></SheetTrigger>
-        <SheetContent side="left" className="research-profile-sheet">
-          <SheetHeader><SheetTitle>Profil bearbeiten</SheetTitle><SheetDescription>Alle Änderungen aktualisieren Analyse und Karte sofort.</SheetDescription></SheetHeader>
-          <div className="research-profile-sheet-scroll"><ProfileControls profile={profile} onChange={onChange} onSave={onSave} saveStatus={saveStatus} /></div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
-}
-
-export function RadarApp({ variant = "classic", testMode = false }: { variant?: "classic" | "research"; testMode?: boolean }) {
+export function RadarApp({ testMode = false }: { testMode?: boolean }) {
   const [profile, setProfile] = useState<Profile>(testMode ? { ...initialProfile, roles: [], skills: [] } : initialProfile);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [testSetupRequired, setTestSetupRequired] = useState(false);
   const hasEditedProfile = useRef(false);
   const [manualSelection, setManualSelection] = useState<{ profile: Profile; regionId: string } | null>(null);
-  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const scoredRegions = useMemo(() => scoreAllRegions(regions, profile), [profile]);
   const isManualSelection = manualSelection?.profile === profile && scoredRegions.some((region) => region.id === manualSelection.regionId);
   const selectedId = isManualSelection ? (manualSelection?.regionId ?? scoredRegions[0].id) : scoredRegions[0].id;
@@ -424,53 +321,6 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
     return () => lifecycle.abort();
   }, []);
 
-  if (variant === "research") {
-    const selectResearchRegion = (id: string) => {
-      selectRegion(id);
-      if (typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches) setMobileDetailOpen(true);
-    };
-    return (
-      <main className="research-shell">
-        <header className="research-header">
-          <Link href="/design-minds" className="research-brand">Arbeitsmarkt Radar</Link>
-          <nav aria-label="Ansichten und Informationen">
-            <a href="#research-profile">Profil</a>
-            <a href="#research-map">Arbeitsmarkt</a>
-            <span>Datenstand · Demo</span>
-            <Link href="/">Originalansicht ↗</Link>
-          </nav>
-        </header>
-
-        <section className="research-intro" id="research-profile">
-          <div>
-            <div className="research-section-label">ARBEITSMARKT-RESEARCH · DEUTSCHLAND</div>
-            <h1>Wo werden deine<br />Fähigkeiten gebraucht?</h1>
-            <p>Wir kombinieren dein Profil mit Stellenanzeigen und regionalen Arbeitsmarktdaten und zeigen dir, wo deine Chancen besonders hoch sind.</p>
-          </div>
-          <ResearchProfileSummary profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} />
-        </section>
-
-        <section className="research-analysis" id="research-map">
-          <div className="research-map-column">
-            <div className="research-map-kicker"><span>01 — OPPORTUNITY MAP</span><strong>Deutschland · Demodaten</strong></div>
-            <OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectResearchRegion} visualVariant="research" />
-          </div>
-          <ResearchRegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} />
-        </section>
-
-        <ResearchRanking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectResearchRegion} />
-
-        <footer className="research-footer"><span>Arbeitsmarkt Radar · Research-Variante</span><span>Alle Stellen- und Scorewerte sind simulierte Demodaten.</span></footer>
-
-        <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
-          <SheetContent side="bottom" className="research-mobile-sheet">
-            <SheetHeader className="sr-only"><SheetTitle>Regionsanalyse {selectedRegion.name}</SheetTitle><SheetDescription>Opportunity Score und passende Stellen.</SheetDescription></SheetHeader>
-            <ResearchRegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} compact />
-          </SheetContent>
-        </Sheet>
-      </main>
-    );
-  }
 
   return (
     <>
@@ -479,7 +329,6 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
       <header className="topbar">
         <a href="#main-workspace" className="brand" aria-label="Arbeitsmarkt Radar Startseite"><span className="brand-mark"><MapPin /></span><span>Arbeitsmarkt <strong>Radar</strong></span></a>
         <div className="topbar-actions">
-          {!testMode && <a className="design-variant-link" href="/design-minds">Research Design</a>}
           <div className="profile-summary"><span>Aktives Profil</span><strong>{profile.roles[0] ?? "Profil vervollständigen"} · {profile.experience}</strong><i>Demo</i></div>
           <Sheet open={testMode ? profileSheetOpen : undefined} onOpenChange={(open) => {
             const invalidTestProfile = !profile.roles.length || !profile.skills.length || (!profile.relocation && !profile.preferredRegions.length);

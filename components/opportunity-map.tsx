@@ -182,26 +182,18 @@ function geometryPath(geometry: GeoFeature["geometry"]): string {
   }).join(" ") + " Z").join(" ");
 }
 
-function stateColor(score: number, researchStyle = false): string {
-  if (researchStyle) {
-    if (score >= 88) return "#b8beba";
-    if (score >= 82) return "#cbd0cc";
-    if (score >= 75) return "#dedfdd";
-    return "#efefec";
-  }
+function stateColor(score: number): string {
   if (score >= 88) return "#185e4b";
   if (score >= 82) return "#4f9279";
   if (score >= 75) return "#a7c5b8";
   return "#e5ece9";
 }
-
-function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchStyle = false }: {
+function FallbackMap({ data, regions, selectedId, onSelect, onHover }: {
   data: GeoCollection;
   regions: ScoredRegion[];
   selectedId: string;
   onSelect: (id: string) => void;
   onHover: (card: HoverCard | null) => void;
-  researchStyle?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [zoom, setZoom] = useState(1);
@@ -227,7 +219,7 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchSty
   };
 
   return (
-    <div className={`fallback-map${researchStyle ? " fallback-map--research" : ""}`} aria-label="Interaktive geografische Ersatzdarstellung Deutschlands">
+    <div className="fallback-map" aria-label="Interaktive geografische Ersatzdarstellung Deutschlands">
       <svg
         ref={svgRef}
         viewBox="0 0 720 680"
@@ -255,7 +247,7 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchSty
                 key={name}
                 d={geometryPath(feature.geometry)}
                 className={`fallback-state${isSelected ? " is-selected" : ""}`}
-                fill={stateColor(Number(feature.properties.avgScore), researchStyle)}
+                fill={stateColor(Number(feature.properties.avgScore))}
                 tabIndex={0}
                 role="button"
                 aria-label={`${name}: durchschnittlich ${feature.properties.avgScore} Punkte, ${feature.properties.regionCount} Demoregionen`}
@@ -273,7 +265,7 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchSty
           })}
           {regions.map((region) => {
             const [x, y] = mapPoint(region.longitude, region.latitude);
-            const radius = researchStyle ? Math.min(21, 14 + region.matchedJobs / 85) : Math.min(25, 17 + region.matchedJobs / 70);
+            const radius = Math.min(25, 17 + region.matchedJobs / 70);
             return (
               <g
                 key={region.id}
@@ -289,7 +281,7 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchSty
                 onMouseLeave={() => onHover(null)}
               >
                 {region.id === selectedId && <circle className="fallback-region-halo" r={radius + 10} />}
-                <circle r={radius} fill={researchStyle ? (region.score >= 84 ? "#00e14f" : "#191919") : (region.score >= 88 ? "#075441" : region.score >= 82 ? "#24785f" : "#7cae9b")} />
+                <circle r={radius} fill={region.score >= 88 ? "#075441" : region.score >= 82 ? "#24785f" : "#7cae9b"} />
                 <text>{region.score}</text>
               </g>
             );
@@ -305,11 +297,10 @@ function FallbackMap({ data, regions, selectedId, onSelect, onHover, researchSty
   );
 }
 
-export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = "classic", deferUntilVisible = false }: {
+export function OpportunityMap({ regions, selectedId, onSelect, deferUntilVisible = false }: {
   regions: ScoredRegion[];
   selectedId: string;
   onSelect: (id: string) => void;
-  visualVariant?: "classic" | "research";
   deferUntilVisible?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -318,7 +309,6 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
   const hoveredStateRef = useRef<string | number | null>(null);
   const selectedStateRef = useRef<string | null>(null);
   const selectRef = useRef(onSelect);
-  const researchStyle = visualVariant === "research";
   const [canInitialize, setCanInitialize] = useState(!deferUntilVisible);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
@@ -361,7 +351,7 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
         setFallbackData(base);
         map = new maplibre.Map({
           container: containerRef.current,
-          style: { version: 8, sources: {}, layers: [{ id: "canvas", type: "background", paint: { "background-color": researchStyle ? "#f7f7f4" : "rgba(245,249,247,0.2)" } }] },
+          style: { version: 8, sources: {}, layers: [{ id: "canvas", type: "background", paint: { "background-color": "rgba(245,249,247,0.2)" } }] },
           center: [10.45, 51.15],
           zoom: 4.85,
           minZoom: 4.2,
@@ -380,14 +370,12 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
           map.addLayer({
             id: "states-fill", type: "fill", source: "states",
             paint: {
-              "fill-color": researchStyle
-                ? ["interpolate", ["linear"], ["get", "avgScore"], 65, "#f0f0ed", 78, "#ddddda", 86, "#c9cdc9", 94, "#b7beb9"]
-                : ["interpolate", ["linear"], ["get", "avgScore"], 65, "#eef2f0", 75, "#d4e1dc", 82, "#79aa98", 88, "#185e4b", 94, "#073e31"],
-              "fill-opacity": ["case", ["boolean", ["feature-state", "selected"], false], 0.98, ["boolean", ["feature-state", "hover"], false], 0.92, researchStyle ? 0.84 : 0.78],
+              "fill-color": ["interpolate", ["linear"], ["get", "avgScore"], 65, "#eef2f0", 75, "#d4e1dc", 82, "#79aa98", 88, "#185e4b", 94, "#073e31"],
+              "fill-opacity": ["case", ["boolean", ["feature-state", "selected"], false], 0.98, ["boolean", ["feature-state", "hover"], false], 0.92, 0.78],
             },
           });
-          map.addLayer({ id: "states-glow", type: "line", source: "states", paint: { "line-color": researchStyle ? "rgba(0,225,79,.08)" : "rgba(65,139,111,.2)", "line-width": researchStyle ? 2 : 5, "line-blur": researchStyle ? 1 : 5 } });
-          map.addLayer({ id: "states-outline", type: "line", source: "states", paint: { "line-color": researchStyle ? "rgba(255,255,255,.96)" : "rgba(255,255,255,.9)", "line-width": ["interpolate", ["linear"], ["zoom"], 4, researchStyle ? 0.8 : 1.1, 8, researchStyle ? 1.5 : 2.2] } });
+          map.addLayer({ id: "states-glow", type: "line", source: "states", paint: { "line-color": "rgba(65,139,111,.2)", "line-width": 5, "line-blur": 5 } });
+          map.addLayer({ id: "states-outline", type: "line", source: "states", paint: { "line-color": "rgba(255,255,255,.9)", "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.1, 8, 2.2] } });
 
           ensureStateLabelImages(map);
           map.addSource("state-labels", { type: "geojson", data: stateLabelsGeoJson() as never });
@@ -407,8 +395,8 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
             filter: ["==", ["get", "selected"], 1],
             paint: {
               "circle-radius": ["+", ["interpolate", ["linear"], ["get", "jobs"], 80, 17, 400, 26], 10],
-              "circle-color": researchStyle ? "rgba(0,225,79,.13)" : "rgba(67,177,136,.18)",
-              "circle-stroke-color": researchStyle ? "rgba(0,225,79,.38)" : "rgba(52,153,116,.3)",
+              "circle-color": "rgba(67,177,136,.18)",
+              "circle-stroke-color": "rgba(52,153,116,.3)",
               "circle-stroke-width": 2,
               "circle-blur": 0.18,
             },
@@ -416,8 +404,8 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
           map.addLayer({
             id: "regions-circles", type: "circle", source: "regions",
             paint: {
-              "circle-radius": researchStyle ? ["interpolate", ["linear"], ["get", "jobs"], 80, 14, 400, 21] : ["interpolate", ["linear"], ["get", "jobs"], 80, 17, 400, 26],
-              "circle-color": researchStyle ? ["step", ["get", "score"], "#191919", 84, "#00e14f"] : ["interpolate", ["linear"], ["get", "score"], 70, "#7cae9b", 82, "#24785f", 88, "#075441"],
+              "circle-radius": ["interpolate", ["linear"], ["get", "jobs"], 80, 17, 400, 26],
+              "circle-color": ["interpolate", ["linear"], ["get", "score"], 70, "#7cae9b", 82, "#24785f", 88, "#075441],
               "circle-stroke-color": "rgba(255,255,255,.96)",
               "circle-stroke-width": ["case", ["==", ["get", "selected"], 1], 4, 3],
               "circle-opacity": 0.98,
@@ -552,7 +540,7 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
   const topRegion = useMemo(() => regions[0], [regions]);
 
   return (
-    <section className={`map-experience${researchStyle ? " map-experience--research" : ""}`} aria-labelledby="map-title">
+    <section className="map-experience" aria-labelledby="map-title">
       <div className="map-copy">
         <p className="eyebrow">Opportunity Map · Deutschland</p>
         <h1 id="map-title">Wo hat dein Profil die besten Chancen?</h1>
@@ -568,7 +556,7 @@ export function OpportunityMap({ regions, selectedId, onSelect, visualVariant = 
         <div className="radar-sweep" aria-hidden="true" />
         <div ref={containerRef} className={`maplibre-canvas${error ? " is-unavailable" : ""}`} aria-label="Interaktive Karte der deutschen Bundesländer" />
         {!ready && !error && <div className="map-loading"><span />Kartendaten werden vorbereitet</div>}
-        {error && fallbackData && <FallbackMap data={fallbackData} regions={regions} selectedId={selectedId} onSelect={onSelect} onHover={setHoverCard} researchStyle={researchStyle} />}
+        {error && fallbackData && <FallbackMap data={fallbackData} regions={regions} selectedId={selectedId} onSelect={onSelect} onHover={setHoverCard} />}
         {error && !fallbackData && <div className="map-loading map-error">Die Karte konnte nicht geladen werden.</div>}
         {!error && <div className="map-controls" aria-label="Kartensteuerung">
           <button type="button" aria-label="Hineinzoomen" onClick={() => mapRef.current?.zoomIn({ duration: 350 })}><Plus /></button>
