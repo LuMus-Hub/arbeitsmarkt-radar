@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, BriefcaseBusiness, Check, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { OpportunityMap } from "@/components/opportunity-map";
 import { CinematicIntro } from "@/components/cinematic-intro";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { initialProfile, regions, roleOptions, skillOptions, type Profile, type WorkMode } from "@/lib/market-data";
 import { scoreAllRegions, type ScoredRegion } from "@/lib/scoring";
 
@@ -26,6 +27,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = false }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus; testSetup?: boolean }) {
   const [showAllSkills, setShowAllSkills] = useState(false);
+  const [showOptionalRegions, setShowOptionalRegions] = useState(false);
   const toggleListValue = (key: "roles" | "skills", value: string) => {
     const current = profile[key];
     const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
@@ -92,31 +94,64 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
           <SelectContent><SelectItem value="Vor Ort">Vor Ort</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent>
         </Select>
       </div>
-      <div className="switch-row">
-        <div><p>Deutschlandweit mobil</p><span>Alle Regionen berücksichtigen</span></div>
-        <Switch checked={profile.relocation} onCheckedChange={(relocation) => onChange({ ...profile, relocation })} aria-label="Deutschlandweit mobil" />
-      </div>
-      <fieldset className="field-group">
-        <legend>Bevorzugte Regionen</legend>
-        <div className="check-list">
-          {regions.map((region) => (
-            <label className="check-row" key={region.id}>
-              <Checkbox
-                checked={profile.preferredRegions.includes(region.id)}
-                onCheckedChange={() => {
-                  const preferredRegions = profile.preferredRegions.includes(region.id)
-                    ? profile.preferredRegions.filter((id) => id !== region.id)
-                    : [...profile.preferredRegions, region.id];
-                  onChange({ ...profile, preferredRegions });
-                }}
-              />
-              <span>{region.name}</span>
+      <fieldset className="field-group mobility-group">
+        <legend>Wo möchtest du arbeiten?</legend>
+        <RadioGroup
+          aria-label="Wo möchtest du arbeiten?"
+          className="mobility-options"
+          value={profile.relocation ? "nationwide" : "regional"}
+          onValueChange={(value) => onChange({ ...profile, relocation: value === "nationwide" })}
+        >
+          <div className="mobility-option" data-selected={profile.relocation}>
+            <RadioGroupItem id="mobility-nationwide" value="nationwide" />
+            <label className="mobility-option-copy" htmlFor="mobility-nationwide">
+              <strong>Deutschlandweit offen</strong>
+              <small>Ich bin bereit, deutschlandweit zu arbeiten. Alle Regionen werden gleichberechtigt berücksichtigt.</small>
             </label>
-          ))}
-        </div>
-        <p className="profile-requirement">Bei deutschlandweiter Mobilität erhalten bevorzugte Regionen einen kleinen Bonus. Ohne Mobilität werden andere Regionen schwächer bewertet.</p>
-        {testSetup && !profile.relocation && profile.preferredRegions.length === 0 && <p className="profile-requirement" role="status">Wähle mindestens eine bevorzugte Region aus. (0 ausgewählt)</p>}
+          </div>
+          <div className="mobility-option" data-selected={!profile.relocation}>
+            <RadioGroupItem id="mobility-regional" value="regional" />
+            <label className="mobility-option-copy" htmlFor="mobility-regional">
+              <strong>Auf bestimmte Regionen konzentriert</strong>
+              <small>Ich möchte bevorzugt in ausgewählten Regionen arbeiten. Andere Regionen bleiben sichtbar, werden aber niedriger bewertet.</small>
+            </label>
+          </div>
+        </RadioGroup>
       </fieldset>
+      <Collapsible open={!profile.relocation || showOptionalRegions} onOpenChange={setShowOptionalRegions} className="preferred-regions">
+        {profile.relocation ? (
+          <CollapsibleTrigger asChild>
+            <button type="button" className="preferred-regions-toggle" aria-expanded={showOptionalRegions}>
+              <span>Bevorzugte Regionen angeben (optional)</span>
+              <ChevronDown aria-hidden="true" />
+            </button>
+          </CollapsibleTrigger>
+        ) : (
+          <p className="preferred-regions-heading">Bevorzugte Regionen auswählen <span>(mindestens eine erforderlich)</span></p>
+        )}
+        <CollapsibleContent>
+          <fieldset className="field-group preferred-regions-list">
+            <legend className="sr-only">Bevorzugte Regionen</legend>
+            <div className="check-list">
+              {regions.map((region) => (
+                <label className="check-row" key={region.id}>
+                  <Checkbox
+                    checked={profile.preferredRegions.includes(region.id)}
+                    onCheckedChange={() => {
+                      const preferredRegions = profile.preferredRegions.includes(region.id)
+                        ? profile.preferredRegions.filter((id) => id !== region.id)
+                        : [...profile.preferredRegions, region.id];
+                      onChange({ ...profile, preferredRegions });
+                    }}
+                  />
+                  <span>{region.name}</span>
+                </label>
+              ))}
+            </div>
+            {testSetup && !profile.relocation && profile.preferredRegions.length === 0 && <p className="profile-requirement" role="status">Wähle mindestens eine bevorzugte Region aus, bevor du das Profil übernimmst.</p>}
+          </fieldset>
+        </CollapsibleContent>
+      </Collapsible>
       <div className="profile-save">
         <Button onClick={onSave} disabled={saveStatus === "saving" || (testSetup && !testProfileValid)}>
           {saveStatus === "saving" ? "Wird gespeichert …" : testSetup ? "Übernehmen & Profil speichern" : "Profil speichern"}
