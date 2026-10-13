@@ -165,12 +165,13 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
   );
 }
 
-function RegionDetail({ region }: { region: ScoredRegion }) {
+function RegionDetail({ region, isManual }: { region: ScoredRegion; isManual: boolean }) {
   const scoreParts = [["Passende Stellen", region.components.jobs, 40], ["Nachfrage", region.components.demand, 20], ["Dynamik", region.components.trend, 15], ["Gehalt", region.components.salary, 15], ["Arbeitsmarkt", region.components.laborMarket, 10]] as const;
   return (
     <aside className="detail-panel glass-panel" aria-live="polite">
       <div className="detail-content" key={region.id}>
         <div className="detail-topline"><span><MapPin /> {region.state}</span><span className="demo-label">Demo</span></div>
+        <p className="region-selection-indicator" data-manual={isManual}>{isManual ? "Manuell ausgewählt" : "Top-Empfehlung · automatisch ausgewählt"}</p>
         <div className="score-hero">
           <div><p className="eyebrow">Opportunity Score</p><h2>{region.name}</h2></div>
           <div className="score-ring" style={{ "--score-color": scoreColor(region.score), "--score": `${region.score}%` } as React.CSSProperties}><strong>{region.score}</strong><span>/100</span></div>
@@ -196,6 +197,23 @@ function RegionDetail({ region }: { region: ScoredRegion }) {
   );
 }
 
+function TopThreeRegions({ regions, selectedId, onSelect, research = false }: { regions: ScoredRegion[]; selectedId: string; onSelect: (id: string) => void; research?: boolean }) {
+  return (
+    <div className={research ? "top-three-regions top-three-regions--research" : "top-three-regions"} aria-label="Top 3 nach Opportunity Score">
+      <div className="top-three-heading"><strong>Top 3 · Opportunity Score</strong><span>Unabhängig von der Listensortierung</span></div>
+      <div className="top-three-grid">
+        {regions.slice(0, 3).map((region, index) => (
+          <button type="button" className="top-three-card" key={region.id} data-recommended={index === 0} data-selected={region.id === selectedId} aria-pressed={region.id === selectedId} onClick={() => onSelect(region.id)}>
+            <span className="top-three-position">#{index + 1}{index === 0 && <small>Empfehlung</small>}</span>
+            <strong>{region.name}</strong>
+            <span className="top-three-score">{region.score}<small>/100</small></span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Ranking({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; selectedId: string; onSelect: (id: string) => void }) {
   const [sort, setSort] = useState<SortKey>("score");
   const sorted = useMemo(() => [...regions].sort((a, b) => sort === "jobs" ? b.matchedJobs - a.matchedJobs : sort === "trend" ? b.trend - a.trend : b.score - a.score), [regions, sort]);
@@ -205,18 +223,19 @@ function Ranking({ regions, selectedId, onSelect }: { regions: ScoredRegion[]; s
         <div><p className="eyebrow">Dein Ranking</p><h2 id="ranking-title">Die stärksten Regionen für dein Profil</h2></div>
         <div className="sort-tabs" aria-label="Ranking sortieren">{([['score', 'Score'], ['jobs', 'Stellen'], ['trend', 'Dynamik']] as [SortKey, string][]).map(([key, label]) => <button type="button" key={key} aria-pressed={sort === key} onClick={() => setSort(key)}>{label}</button>)}</div>
       </div>
+      <TopThreeRegions regions={regions} selectedId={selectedId} onSelect={onSelect} />
       <div className="ranking-list">
-        {sorted.map((region, index) => <button className="ranking-row" data-selected={region.id === selectedId} type="button" key={region.id} onClick={() => onSelect(region.id)}><span className="rank">{String(index + 1).padStart(2, "0")}</span><span className="region-name"><strong>{region.name}</strong><small>{region.state}</small></span><span className="ranking-stat"><strong>{region.matchedJobs}</strong><small>Stellen</small></span><span className="ranking-stat positive"><strong>+{Math.round(region.trend / 5)} %</strong><small>Dynamik</small></span><span className="ranking-skills">{region.topSkills.slice(0, 2).map((skill) => <i key={skill}>{skill}</i>)}</span><span className="row-score" style={{ color: scoreColor(region.score) }}>{region.score}</span><ChevronRight className="row-arrow" /></button>)}
+        {sorted.map((region, index) => <button className="ranking-row" data-selected={region.id === selectedId} aria-pressed={region.id === selectedId} type="button" key={region.id} onClick={() => onSelect(region.id)}><span className="rank">{String(index + 1).padStart(2, "0")}</span><span className="region-name"><strong>{region.name}</strong><small>{region.state}</small></span><span className="ranking-stat"><strong>{region.matchedJobs}</strong><small>Stellen</small></span><span className="ranking-stat positive"><strong>+{Math.round(region.trend / 5)} %</strong><small>Dynamik</small></span><span className="ranking-skills">{region.topSkills.slice(0, 2).map((skill) => <i key={skill}>{skill}</i>)}</span><span className="row-score" style={{ color: scoreColor(region.score) }}>{region.score}</span><ChevronRight className="row-arrow" /></button>)}
       </div>
     </section>
   );
 }
 
-function ResearchRegionDetail({ region, compact = false }: { region: ScoredRegion; compact?: boolean }) {
+function ResearchRegionDetail({ region, isManual, compact = false }: { region: ScoredRegion; isManual: boolean; compact?: boolean }) {
   const scoreParts = [["Passende Stellen", region.components.jobs], ["Nachfrage", region.components.demand], ["Dynamik", region.components.trend], ["Gehalt", region.components.salary], ["Arbeitsmarkt", region.components.laborMarket]] as const;
   return (
     <aside className={`research-detail${compact ? " research-detail--compact" : ""}`} aria-live="polite">
-      <div className="research-section-label">02 — BESTE REGION</div>
+      <div className="research-section-label">{isManual ? "02 — MANUELL AUSGEWÄHLT" : "02 — TOP-EMPFEHLUNG"}</div>
       <div className="research-region-heading">
         <div><span>{region.state}</span><h2>{region.name}</h2></div>
         <div className="research-score"><strong>{region.score}</strong><span>Opportunity Score</span></div>
@@ -258,11 +277,10 @@ function ResearchRegionDetail({ region, compact = false }: { region: ScoredRegio
   );
 }
 
-function ResearchRanking({ regions, selectedId, onSelect, onHover }: {
+function ResearchRanking({ regions, selectedId, onSelect }: {
   regions: ScoredRegion[];
   selectedId: string;
   onSelect: (id: string) => void;
-  onHover: (id: string | null) => void;
 }) {
   const [sort, setSort] = useState<SortKey>("score");
   const sorted = useMemo(() => [...regions].sort((a, b) => sort === "jobs" ? b.matchedJobs - a.matchedJobs : sort === "trend" ? b.trend - a.trend : b.score - a.score), [regions, sort]);
@@ -274,17 +292,15 @@ function ResearchRanking({ regions, selectedId, onSelect, onHover }: {
           {([['score', 'Score'], ['jobs', 'Stellen'], ['trend', 'Dynamik']] as [SortKey, string][]).map(([key, label]) => <button type="button" key={key} aria-pressed={sort === key} onClick={() => setSort(key)}>{label}</button>)}
         </div>
       </div>
+      <TopThreeRegions regions={regions} selectedId={selectedId} onSelect={onSelect} research />
       <div className="research-ranking-list">
         {sorted.map((region, index) => (
           <button
             type="button"
             key={region.id}
             data-selected={region.id === selectedId}
+            aria-pressed={region.id === selectedId}
             onClick={() => onSelect(region.id)}
-            onMouseEnter={() => onHover(region.id)}
-            onMouseLeave={() => onHover(null)}
-            onFocus={() => onHover(region.id)}
-            onBlur={() => onHover(null)}
           >
             <span>{String(index + 1).padStart(2, "0")}</span>
             <strong>{region.name}</strong>
@@ -322,11 +338,13 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [testSetupRequired, setTestSetupRequired] = useState(false);
   const hasEditedProfile = useRef(false);
-  const [selectedId, setSelectedId] = useState("hannover");
-  const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
+  const [manualSelection, setManualSelection] = useState<{ profile: Profile; regionId: string } | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const scoredRegions = useMemo(() => scoreAllRegions(regions, profile), [profile]);
+  const isManualSelection = manualSelection?.profile === profile && scoredRegions.some((region) => region.id === manualSelection.regionId);
+  const selectedId = isManualSelection ? (manualSelection?.regionId ?? scoredRegions[0].id) : scoredRegions[0].id;
   const selectedRegion = scoredRegions.find((region) => region.id === selectedId) ?? scoredRegions[0];
+  const selectRegion = (regionId: string) => setManualSelection({ profile, regionId });
 
   useEffect(() => {
     let active = true;
@@ -356,7 +374,7 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
 
   const updateProfile = (next: Profile) => {
     hasEditedProfile.current = true;
-    setProfile(next);
+    setProfile((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     setSaveStatus("idle");
   };
 
@@ -394,7 +412,12 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
         const update = input as Partial<Pick<Profile, "skills" | "roles" | "workMode" | "relocation">>;
         if (update.skills && update.skills.some((item) => !skillOptions.includes(item))) throw new Error("Unbekannter Skill");
         if (update.roles && update.roles.some((item) => !roleOptions.includes(item))) throw new Error("Unbekanntes Tätigkeitsfeld");
-        setProfile((current) => ({ ...current, ...update }));
+        hasEditedProfile.current = true;
+        setProfile((current) => {
+          const next = { ...current, ...update };
+          return JSON.stringify(current) === JSON.stringify(next) ? current : next;
+        });
+        setSaveStatus("idle");
         return { status: "updated", fields: Object.keys(update) };
       },
     }, { signal: lifecycle.signal })).catch(() => undefined);
@@ -403,7 +426,7 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
 
   if (variant === "research") {
     const selectResearchRegion = (id: string) => {
-      setSelectedId(id);
+      selectRegion(id);
       if (typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches) setMobileDetailOpen(true);
     };
     return (
@@ -430,19 +453,19 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
         <section className="research-analysis" id="research-map">
           <div className="research-map-column">
             <div className="research-map-kicker"><span>01 — OPPORTUNITY MAP</span><strong>Deutschland · Demodaten</strong></div>
-            <OpportunityMap regions={scoredRegions} selectedId={hoveredRegionId ?? selectedRegion.id} onSelect={selectResearchRegion} visualVariant="research" />
+            <OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectResearchRegion} visualVariant="research" />
           </div>
-          <ResearchRegionDetail region={selectedRegion} />
+          <ResearchRegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} />
         </section>
 
-        <ResearchRanking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectResearchRegion} onHover={setHoveredRegionId} />
+        <ResearchRanking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectResearchRegion} />
 
         <footer className="research-footer"><span>Arbeitsmarkt Radar · Research-Variante</span><span>Alle Stellen- und Scorewerte sind simulierte Demodaten.</span></footer>
 
         <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
           <SheetContent side="bottom" className="research-mobile-sheet">
             <SheetHeader className="sr-only"><SheetTitle>Regionsanalyse {selectedRegion.name}</SheetTitle><SheetDescription>Opportunity Score und passende Stellen.</SheetDescription></SheetHeader>
-            <ResearchRegionDetail region={selectedRegion} compact />
+            <ResearchRegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} compact />
           </SheetContent>
         </Sheet>
       </main>
@@ -473,8 +496,8 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
       </header>
       <div className="workspace" id="main-workspace">
         <aside className="profile-panel glass-panel desktop-profile"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} /></aside>
-        <div className="center-column"><OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={setSelectedId} deferUntilVisible /><Ranking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={setSelectedId} /></div>
-        <RegionDetail region={selectedRegion} />
+        <div className="center-column"><OpportunityMap regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectRegion} deferUntilVisible /><Ranking regions={scoredRegions} selectedId={selectedRegion.id} onSelect={selectRegion} /></div>
+        <RegionDetail region={selectedRegion} isManual={Boolean(isManualSelection)} />
       </div>
       <footer className="app-footer"><span>Arbeitsmarkt Radar · Konzeptprototyp</span><span>Stellen- und Scorewerte sind simulierte Demodaten.</span></footer>
       </main>
