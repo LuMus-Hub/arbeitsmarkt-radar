@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BriefcaseBusiness, Check, ChevronDown, ChevronRight, MapPin, RotateCcw, SlidersHorizontal, TrendingUp } from "lucide-react";
 import { OpportunityMap } from "@/components/opportunity-map";
@@ -27,6 +27,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = false }: { profile: Profile; onChange: (next: Profile) => void; onSave: () => void; saveStatus: SaveStatus; testSetup?: boolean }) {
   const [showAllSkills, setShowAllSkills] = useState(false);
+  const mobilityId = useId();
   const [showOptionalRegions, setShowOptionalRegions] = useState(false);
   const toggleListValue = (key: "roles" | "skills", value: string) => {
     const current = profile[key];
@@ -103,15 +104,15 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
           onValueChange={(value) => onChange({ ...profile, relocation: value === "nationwide" })}
         >
           <div className="mobility-option" data-selected={profile.relocation}>
-            <RadioGroupItem id="mobility-nationwide" value="nationwide" />
-            <label className="mobility-option-copy" htmlFor="mobility-nationwide">
+            <RadioGroupItem id={`${mobilityId}-nationwide`} value="nationwide" />
+            <label className="mobility-option-copy" htmlFor={`${mobilityId}-nationwide`}>
               <strong>Deutschlandweit offen</strong>
               <small>Ich bin bereit, deutschlandweit zu arbeiten. Alle Regionen werden gleichberechtigt berücksichtigt.</small>
             </label>
           </div>
           <div className="mobility-option" data-selected={!profile.relocation}>
-            <RadioGroupItem id="mobility-regional" value="regional" />
-            <label className="mobility-option-copy" htmlFor="mobility-regional">
+            <RadioGroupItem id={`${mobilityId}-regional`} value="regional" />
+            <label className="mobility-option-copy" htmlFor={`${mobilityId}-regional`}>
               <strong>Auf bestimmte Regionen konzentriert</strong>
               <small>Ich möchte bevorzugt in ausgewählten Regionen arbeiten. Andere Regionen bleiben sichtbar, werden aber niedriger bewertet.</small>
             </label>
