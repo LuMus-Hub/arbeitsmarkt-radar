@@ -62,7 +62,8 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const profileId = getCookie(request) ?? crypto.randomUUID();
+  const cookieName = getCookieName(request);
+  const profileId = getCookie(request, cookieName) ?? crypto.randomUUID();
   let payload: unknown;
   try {
     payload = await request.json();
