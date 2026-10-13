@@ -325,6 +325,7 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
   };
 
   const saveProfile = async () => {
+    if (testMode && (!profile.roles.length || !profile.skills.length || (!profile.relocation && !profile.preferredRegions.length))) return;
     setSaveStatus("saving");
     try {
       const response = await fetch("/api/profile", {
@@ -422,13 +423,14 @@ export function RadarApp({ variant = "classic", testMode = false }: { variant?: 
           {!testMode && <a className="design-variant-link" href="/design-minds">Research Design</a>}
           <div className="profile-summary"><span>Aktives Profil</span><strong>{profile.roles[0] ?? "Profil vervollständigen"} · {profile.experience}</strong><i>Demo</i></div>
           <Sheet open={testMode ? profileSheetOpen : undefined} onOpenChange={(open) => {
-            if (!open && testSetupRequired) return;
+            const invalidTestProfile = !profile.roles.length || !profile.skills.length || (!profile.relocation && !profile.preferredRegions.length);
+            if (!open && testMode && invalidTestProfile) return;
             setProfileSheetOpen(open);
           }}>
             <SheetTrigger asChild><Button variant="outline" className="mobile-profile-button"><SlidersHorizontal /> Profil anpassen</Button></SheetTrigger>
             <SheetContent side="left" className="mobile-profile-sheet">
               <SheetHeader><SheetTitle>Profil anpassen</SheetTitle><SheetDescription>Deine Änderungen aktualisieren Karte und Ranking sofort.</SheetDescription></SheetHeader>
-              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} testSetup={testSetupRequired} /></div>
+              <div className="mobile-profile-scroll"><ProfileControls profile={profile} onChange={updateProfile} onSave={saveProfile} saveStatus={saveStatus} testSetup={testMode} /></div>
             </SheetContent>
           </Sheet>
         </div>
