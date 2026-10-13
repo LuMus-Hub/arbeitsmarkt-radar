@@ -46,8 +46,8 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
       <div className="field-group">
         <label>Abschluss</label>
         <Select value={profile.education} onValueChange={(education) => onChange({ ...profile, education })}>
-          <SelectTrigger className="control"><SelectValue>{profile.education}</SelectValue></SelectTrigger>
-          <SelectContent>
+          <SelectTrigger className="control profile-select-trigger"><SelectValue className="profile-select-value">{profile.education}</SelectValue></SelectTrigger>
+          <SelectContent position="popper" align="start" sideOffset={4} collisionPadding={8} className="profile-select-menu">
             <SelectItem value="Master Wirtschaft & Management">Master Wirtschaft & Management</SelectItem>
             <SelectItem value="Bachelor Wirtschaft">Bachelor Wirtschaft</SelectItem>
             <SelectItem value="Kaufmännische Ausbildung">Kaufmännische Ausbildung</SelectItem>
@@ -57,8 +57,8 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
       <div className="field-group">
         <label>Erfahrungslevel</label>
         <Select value={profile.experience} onValueChange={(experience) => onChange({ ...profile, experience })}>
-          <SelectTrigger className="control"><SelectValue>{profile.experience}</SelectValue></SelectTrigger>
-          <SelectContent>
+          <SelectTrigger className="control profile-select-trigger"><SelectValue className="profile-select-value">{profile.experience}</SelectValue></SelectTrigger>
+          <SelectContent position="popper" align="start" sideOffset={4} collisionPadding={8} className="profile-select-menu">
             <SelectItem value="Berufseinstieg">Berufseinstieg</SelectItem>
             <SelectItem value="1–3 Jahre Erfahrung">1–3 Jahre Erfahrung</SelectItem>
             <SelectItem value="3–5 Jahre Erfahrung">3–5 Jahre Erfahrung</SelectItem>
@@ -91,8 +91,8 @@ function ProfileControls({ profile, onChange, onSave, saveStatus, testSetup = fa
       <div className="field-group compact-field">
         <label>Arbeitsform</label>
         <Select value={profile.workMode} onValueChange={(workMode) => onChange({ ...profile, workMode: workMode as WorkMode })}>
-          <SelectTrigger className="control"><SelectValue>{profile.workMode}</SelectValue></SelectTrigger>
-          <SelectContent><SelectItem value="Vor Ort">Vor Ort</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent>
+          <SelectTrigger className="control profile-select-trigger"><SelectValue className="profile-select-value">{profile.workMode}</SelectValue></SelectTrigger>
+          <SelectContent position="popper" align="start" sideOffset={4} collisionPadding={8} className="profile-select-menu"><SelectItem value="Vor Ort">Vor Ort</SelectItem><SelectItem value="Hybrid">Hybrid</SelectItem><SelectItem value="Remote">Remote</SelectItem></SelectContent>
         </Select>
       </div>
       <fieldset className="field-group mobility-group">
